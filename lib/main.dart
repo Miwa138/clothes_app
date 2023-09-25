@@ -1,8 +1,12 @@
 import 'package:clothes_app/admin/admin_upload_items.dart';
 import 'package:clothes_app/admin_upload_mysql.dart';
+import 'package:clothes_app/users/fragments/dashboard_of_fragments.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import 'users/authentication/login_screen.dart';
+import 'users/user_preferences/user_preferences.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,21 +51,22 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-       home: AddProductScreen(),
-      // FutureBuilder(
-      //   future: RememberUserPrefs.readUserUser(),
-      //   builder: (context, dataSnapShot)
-      //   {
-      //     if(dataSnapShot.data == null)
-      //     {
-      //       return LoginScreen();
-      //     }
-      //     else
-      //     {
-      //       return DashboardOfFragments();
-      //     }
-      //   },
-      // ),
+       home:
+
+      FutureBuilder(
+        future: RememberUserPrefs.readUserUser(),
+        builder: (context, dataSnapShot)
+        {
+          if(dataSnapShot.data == null)
+          {
+            return LoginScreen();
+          }
+          else
+          {
+            return DashboardOfFragments();
+          }
+        },
+      ),
     );
   }
 }

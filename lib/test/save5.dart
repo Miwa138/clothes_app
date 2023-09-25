@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'api_connection/api_connection.dart';
+import '../api_connection/api_connection.dart';
+
 
 class AddProductScreen extends StatefulWidget {
   @override
@@ -13,7 +14,7 @@ class AddProductScreen extends StatefulWidget {
 
 class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  Future<bool>? _uploadResult;
+
   late String _name;
   late String _description;
   late double _price;
@@ -22,7 +23,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
 
 
-  Future<bool> _addProduct() async {
+  Future<void> _addProduct() async {
     var request = http.MultipartRequest('POST', Uri.parse(API.uploadNewItem));
 
     request.fields['name'] = _name;
@@ -44,17 +45,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
           content: Text('Product added successfully.'),
         ),
       );
-      return true; // return true when product is added successfully
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error adding product.'),
         ),
       );
-      return false; // return false when there's an error adding product
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -115,60 +113,46 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 SizedBox(height: 8.0),
                 _images.isEmpty
                     ? GestureDetector(
-                        onTap: () => _pickImages(),
-                        child: Container(
-                          height: 150.0,
-                          width: double.infinity,
-                          color: Colors.grey[300],
-                          child: Icon(Icons.add_a_photo),
-                        ),
-                      )
+                  onTap: () => _pickImages(),
+                  child: Container(
+                    height: 150.0,
+                    width: double.infinity,
+                    color: Colors.grey[300],
+                    child: Icon(Icons.add_a_photo),
+                  ),
+                )
                     : SizedBox(
-                        height: 150.0,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _images.length,
-                          itemBuilder: (context, index) {
-                            return Stack(
-                              children: [
-                                Image.file(_images[index], width: 150.0),
-                                Positioned(
-                                  top: 0,
-                                  right: 0,
-                                  child: GestureDetector(
-                                    onTap: () => _removeImage(index),
-                                    child: Icon(Icons.close),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                SizedBox(height: 16.0),
-                Center(
-                  child: FutureBuilder<bool>(
-                    future: _uploadResult,
-                    builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return CircularProgressIndicator(); // Показывает индикатор прогресса
-                      } else {
-                        return ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              _formKey.currentState!.save();
-                              setState(() {
-                                _uploadResult = _addProduct();
-                              });
-                            }
-                          },
-                          child: Text('Add Product'),
-                        );
-                      }
+                  height: 150.0,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _images.length,
+                    itemBuilder: (context, index) {
+                      return Stack(
+                        children: [
+                          Image.file(_images[index], width: 150.0),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Icon(Icons.close),
+                            ),
+                          ),
+                        ],
+                      );
                     },
                   ),
                 ),
-
+                SizedBox(height: 16.0),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _formKey.currentState!.save();
+                      _addProduct();
+                    }
+                  },
+                  child: Text('Add Product'),
+                ),
               ],
             ),
           ),

@@ -7,6 +7,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
+import '../admin_upload_mysql.dart';
+
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
 
@@ -29,7 +31,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         var resBodyOfLogin = jsonDecode(res.body);
         if (resBodyOfLogin['success'] == true) {
           Fluttertoast.showToast(msg: "Привет!");
-          // Get.to(AdminUploadItemsScreen());
+           Get.to(AddProductScreen());
 
         } else {
           Fluttertoast.showToast(msg: 'Неверный Логин или Пароль');
