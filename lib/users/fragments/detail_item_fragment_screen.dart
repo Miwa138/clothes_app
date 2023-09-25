@@ -29,20 +29,26 @@ class HomeFragmentScreen extends StatelessWidget {
                       children: [
                         Text('Price: ${product['price']}'),
                         Text('Images:'),
-                        CachedNetworkImage(
-                          imageUrl:
-                          'http://host1373377.hostland.pro/api_clothes_store/items/' +
-                              product['images'][0],
-                          cacheManager: CacheManager(
-                            Config('MyCustomCacheKey',
-                                stalePeriod: Duration(days: 7),
-                                maxNrOfCacheObjects: 100),
-                          ),
+                        Column(
+                          children: product['images']
+                              .map<Widget>((imageUrl) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: CachedNetworkImage(
+                              imageUrl:
+                              'http://host1373377.hostland.pro/api_clothes_store/items/' +
+                                  imageUrl,
+                              cacheManager: CacheManager(
+                                Config('MyCustomCashKey',
+                                    stalePeriod: Duration(days: 7),
+                                    maxNrOfCacheObjects: 100),
+                              ),
+                            ),
+                          ))
+                              .toList(),
                         ),
                       ],
                     ),
                   );
-
                 },
               );
             } else {
