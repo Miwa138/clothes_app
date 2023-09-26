@@ -2,16 +2,20 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-
+import 'package:file/local.dart';
 class HomeFragmentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width / 1;
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
+        backgroundColor: Colors.black,
+        // добавьте эту строку, чтобы сделать фон черным
         appBar: AppBar(
-          title: Text('Products with Images'),
+          backgroundColor: Colors.black,
+          title: Text('Pizza'),
         ),
         body: FutureBuilder(
           future: fetchProducts(),
@@ -23,26 +27,44 @@ class HomeFragmentScreen extends StatelessWidget {
                   var product = snapshot.data[index];
                   print(product);
                   return ListTile(
-                    title: Text(product['name']),
                     subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text('Price: ${product['price']}'),
-                        Text('Images:'),
                         CachedNetworkImage(
                           imageUrl:
-                          'http://host1373377.hostland.pro/api_clothes_store/items/' +
-                              product['images'][0],
+                              'http://host1373377.hostland.pro/api_clothes_store/items/' +
+                                  product['images'][0],
                           cacheManager: CacheManager(
                             Config('MyCustomCacheKey',
                                 stalePeriod: Duration(days: 7),
                                 maxNrOfCacheObjects: 100),
                           ),
+                          height: 200,
+                          width: width,
+                          fit: BoxFit.cover,
+                        ),
+                        SizedBox(
+                          height: 15,
+                        ),
+                        Text(
+                          product['name'],
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                        // Измените цвет текста на белый, чтобы улучшить его видимость
+                        SizedBox(
+                          height: 15,
+                        ),
+                        Text(
+                          'Price: ${product['price']}',
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                        // Измените цвет текста на белый, чтобы улучшить его видимость
+                        SizedBox(
+                          height: 40,
                         ),
                       ],
                     ),
                   );
-
                 },
               );
             } else {
