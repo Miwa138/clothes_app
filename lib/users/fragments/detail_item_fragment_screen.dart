@@ -35,8 +35,8 @@ class HomeFragmentScreen extends StatelessWidget {
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: CachedNetworkImage(
                               imageUrl:
-                              'http://host1373377.hostland.pro/api_clothes_store/items/' +
-                                  imageUrl,
+                            'http://host1373377.hostland.pro/api_clothes_store/items/' +
+                                imageUrl,
                               cacheManager: CacheManager(
                                 Config('MyCustomCashKey',
                                     stalePeriod: Duration(days: 7),

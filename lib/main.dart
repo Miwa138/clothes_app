@@ -1,16 +1,27 @@
-import 'package:clothes_app/admin/admin_upload_items.dart';
-import 'package:clothes_app/admin_upload_mysql.dart';
 import 'package:clothes_app/users/fragments/dashboard_of_fragments.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:permission_handler/permission_handler.dart';
-
+import 'generated/codegen_loader.g.dart';
 import 'users/authentication/login_screen.dart';
 import 'users/user_preferences/user_preferences.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  await EasyLocalization.ensureInitialized();
+
+  runApp(
+      EasyLocalization(
+    assetLoader: CodegenLoader(),
+    supportedLocales: [
+      Locale('en'),
+      Locale('ru')
+    ],
+    path: 'assets/lang',
+    fallbackLocale: Locale('en'),
+    child: MyApp(),
+  ));
 }
 
 
@@ -46,6 +57,9 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
