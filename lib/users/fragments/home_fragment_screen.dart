@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clothes_app/users/fragments/detail_product_fragment_screen.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -45,7 +46,8 @@ class HomeFragmentScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => ProductDetailsScreen(product: product),
+                          builder: (context) =>
+                              ProductDetailsScreen(product: product),
                         ),
                       );
                     },
@@ -55,8 +57,8 @@ class HomeFragmentScreen extends StatelessWidget {
                         children: [
                           CachedNetworkImage(
                             imageUrl:
-                            'http://host1373377.hostland.pro/api_clothes_store/items/' +
-                                product['images'][0],
+                                'http://host1373377.hostland.pro/api_clothes_store/items/' +
+                                    product['images'][0],
                             cacheManager: CacheManager(
                               Config('MyCustomCacheKey',
                                   stalePeriod: const Duration(days: 7),
@@ -70,7 +72,10 @@ class HomeFragmentScreen extends StatelessWidget {
                             height: 15,
                           ),
                           Text(
-                            product['name'].toString().replaceAll(' ', '_').tr(),
+                            product['name']
+                                .toString()
+                                .replaceAll(' ', '_')
+                                .tr(),
                             style: TextStyle(color: Colors.white, fontSize: 18),
                           ),
                           const SizedBox(
@@ -81,13 +86,44 @@ class HomeFragmentScreen extends StatelessWidget {
                             children: [
                               Text(
                                 '${'Price:'.tr()} ${product['price']} ',
-                                style:
-                                TextStyle(color: Colors.white, fontSize: 18),
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 18),
                               ),
-                              Text('Rub'.tr(), style: TextStyle(color: Colors.white, fontSize: 18,),),
+                              Text(
+                                'Rub'.tr(),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              ),
                             ],
                           ),
-                          const SizedBox(
+                          SizedBox(
+                            height: 15,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              RatingBar.builder(
+                                initialRating: double.parse(product['rating']) ?? 0,
+                                minRating: 1,
+                                direction: Axis.horizontal,
+                                allowHalfRating: true,
+                                itemCount: 5,
+                                itemBuilder: (context, c) => Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                ),
+                                onRatingUpdate: (updateRating) {},
+                                ignoreGestures: true,
+                                unratedColor: Colors.grey,
+                                itemSize: 20,
+                              ),
+                              SizedBox(width: 8,),
+                              Text('${double.parse(product['rating'])}', style: TextStyle(color: Colors.white),),
+                            ],
+                          ),
+                          SizedBox(
                             height: 40,
                           ),
                         ],
