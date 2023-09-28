@@ -1,10 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'api_connection/api_connection.dart';
+import '../api_connection/api_connection.dart';
 
 class AddProductScreen extends StatefulWidget {
   @override
@@ -18,9 +19,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
   late String _description;
   late double _price;
   List<File> _images = [];
-
-
-
+  int ratingTime = 0; // начальное значение
+  List options = [];
+  bool isLoading = false;
 
   Future<bool> _addProduct() async {
     var request = http.MultipartRequest('POST', Uri.parse(API.uploadNewItem));
@@ -33,7 +34,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       var stream = http.ByteStream(Stream.castFrom(image.openRead()));
       var length = await image.length();
       var multipartFile =
-      http.MultipartFile('images[]', stream, length, filename: image.path);
+          http.MultipartFile('images[]', stream, length, filename: image.path);
       request.files.add(multipartFile);
     }
 
@@ -55,6 +56,68 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  Future<void> _changeRatingTime(String action) async {
+    var response = await http.post(
+      Uri.parse(API.updateOptions),
+      body: {'action': action},
+    );
+    print(":::::");
+    print(response.body);
+    if (response.statusCode == 200) {
+      setState(() {
+        ratingTime = int.parse(response.body);
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchOptionsData();
+  }
+
+  fetchOptionsData() async {
+    setState(() {
+      isLoading = true;
+    });
+    var url =
+        'http://host1373377.hostland.pro/api_clothes_store/options/get_rating_time.php';
+    var response = await http.get(Uri.parse(url)); // исправлено здесь
+    if (response.statusCode == 200) {
+      var items = json.decode(response.body);
+      setState(() {
+        options = items;
+        isLoading = false;
+        print("::::::::::::::::::::::");
+        print(response.body);
+        // Проверяем, что массив не пустой и содержит рейтинг_время, затем устанавливаем его
+        if (items.isNotEmpty && items[0]['rating_time'] != null) {
+          ratingTime = items[0]['rating_time'] is int
+              ? items[0]['rating_time']
+              : int.parse(items[0]['rating_time']);
+        }
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      print('Failed to load data');
+    }
+  }
+
+  void _increase() {
+    setState(() {
+      ratingTime += 1;
+    });
+    _changeRatingTime('increase');
+  }
+
+  void _decrease() {
+    setState(() {
+      ratingTime -= 1;
+    });
+    _changeRatingTime('decrease');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +212,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 Center(
                   child: FutureBuilder<bool>(
                     future: _uploadResult,
-                    builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    builder:
+                        (BuildContext context, AsyncSnapshot<bool> snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return CircularProgressIndicator(); // Показывает индикатор прогресса
                       } else {
@@ -168,7 +232,47 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     },
                   ),
                 ),
-
+                SizedBox(
+                  height: 20,
+                ),
+                Center(child: Text("Rating blocking time", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),)),
+                SizedBox(
+                  height: 20,
+                ),
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _decrease(),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Container(
+                            height: 35,
+                            width: 35,
+                            color: Colors.grey[300],
+                            child: Icon(Icons.remove),
+                          ),
+                        ),
+                      ),
+                      isLoading
+                          ? CircularProgressIndicator()
+                          : Row(children: [Text('$ratingTime'), Text(" min")],),
+                      GestureDetector(
+                        onTap: () => _increase(),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Container(
+                            height: 35,
+                            width: 35,
+                            color: Colors.grey[300],
+                            child: Icon(Icons.add),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               ],
             ),
           ),
@@ -186,7 +290,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
       });
     }
   }
-
 
   void _removeImage(int index) {
     setState(() {

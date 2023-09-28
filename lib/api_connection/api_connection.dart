@@ -5,6 +5,9 @@ class API
   static const hostConnectAdmin = "$hostConnect/admin";
   static const hostUploadItem = "$hostConnect/items";
   static const hostloadItem = "$hostConnect/items";
+  static const hostloadRating = "$hostConnect/rating";
+  static const hostloadOptions = "$hostConnect/options";
+  static const hostloadOptionsRatingTime = "$hostConnect/options";
 
   // Регитсрация пользователя
 
@@ -14,4 +17,7 @@ static const login = "$hostConnectUser/login.php";
 static const adminlogin = "$hostConnectAdmin/login.php";
 static const uploadNewItem = "$hostUploadItem/uploaded.php";
 static const loadNewItem = "$hostloadItem/loaded.php";
+static const updateRating = "$hostloadRating/rating.php";
+static const updateOptions = "$hostloadOptions/options.php";
+static const updateOptionRatingTime = "$hostloadOptionsRatingTime/get_rating_time.php";
 }

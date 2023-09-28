@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clothes_app/api_connection/api_connection.dart';
 import 'package:clothes_app/users/fragments/detail_product_fragment_screen.dart';
-import 'package:clothes_app/widgets/RatingTimeLock.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -25,6 +25,7 @@ Future<double> submitRating(int productId, double updatedRating) async {
   }
 }
 
+
 double starsFromRating(double rating) {
   if (rating < 1) return 1.0;
   if (rating > 5) return 5.0;
@@ -36,49 +37,8 @@ class HomeFragmentScreen extends StatefulWidget {
   State<HomeFragmentScreen> createState() => _HomeFragmentScreenState();
 }
 
-bool isLoading = false;
-
 class _HomeFragmentScreenState extends State<HomeFragmentScreen> {
-  bool isLoading = false;
-  int ratingTime = 0; // начальное значение
-  List options = [];
-  @override
-  void initState() {
-    super.initState();
-    fetchOptionsData();
-  }
-
   static Map<int, DateTime> lastRatingTimes = {};
-
-  fetchOptionsData() async {
-    setState(() {
-      isLoading = true;
-    });
-    var url =
-        'http://host1373377.hostland.pro/api_clothes_store/options/get_rating_time.php';
-    var response = await http.get(Uri.parse(url)); // исправлено здесь
-    if (response.statusCode == 200) {
-      var items = json.decode(response.body);
-      setState(() {
-        options = items;
-        isLoading = false;
-        print("::::::::::::::::::::::");
-        print(options);
-        // Проверяем, что массив не пустой и содержит рейтинг_время, затем устанавливаем его
-        if (items.isNotEmpty && items[0]['rating_time'] != null) {
-          ratingTime = items[0]['rating_time'] is int
-              ? items[0]['rating_time']
-              : int.parse(items[0]['rating_time']);
-        }
-      });
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-      print('Failed to load data');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width / 1;
@@ -114,8 +74,7 @@ class _HomeFragmentScreenState extends State<HomeFragmentScreen> {
                   int productId = int.parse(product['id'].toString());
 
                   if (!lastRatingTimes.containsKey(productId)) {
-                    lastRatingTimes[productId] =
-                        DateTime.now().subtract(const Duration(minutes: 2));
+                    lastRatingTimes[productId] = DateTime.now().subtract(const Duration(minutes: 2));
                   }
 
                   return ListTile(
@@ -123,18 +82,16 @@ class _HomeFragmentScreenState extends State<HomeFragmentScreen> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ProductDetailsScreen(product: product),
-                              ),
-                            );
-                          },
+                          onTap: (){   Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProductDetailsScreen(product: product),
+                            ),
+                          );},
                           child: CachedNetworkImage(
                             imageUrl:
-                                'http://host1373377.hostland.pro/api_clothes_store/items/' +
-                                    product['images'][0],
+                            'http://host1373377.hostland.pro/api_clothes_store/items/' +
+                                product['images'][0],
                             cacheManager: CacheManager(
                               Config('MyCustomCacheKey',
                                   stalePeriod: const Duration(days: 7),
@@ -149,7 +106,10 @@ class _HomeFragmentScreenState extends State<HomeFragmentScreen> {
                           height: 15,
                         ),
                         Text(
-                          product['name'].toString().replaceAll(' ', '_').tr(),
+                          product['name']
+                              .toString()
+                              .replaceAll(' ', '_')
+                              .tr(),
                           style: TextStyle(color: Colors.white, fontSize: 18),
                         ),
                         const SizedBox(
@@ -160,8 +120,8 @@ class _HomeFragmentScreenState extends State<HomeFragmentScreen> {
                           children: [
                             Text(
                               '${'Price:'.tr()} ${product['price']} ',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 18),
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 18),
                             ),
                             Text(
                               'Rub'.tr(),
@@ -178,45 +138,59 @@ class _HomeFragmentScreenState extends State<HomeFragmentScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            RatingTimeLock(
-                              currentRating: product['ratings'] != null
-                                  ? starsFromRating(double.parse(
-                                      product['ratings'].toString()))
+                            RatingBar.builder(
+                              initialRating: product['ratings'] != null
+                                  ? starsFromRating(double.parse(product['ratings'].toString()))
                                   : 1,
-                              productId: productId,
+                              minRating: 1,
+                              direction: Axis.horizontal,
+                              allowHalfRating: true,
+                              itemCount: 5,
+                              itemBuilder: (context, c) => Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                              ),
                               onRatingUpdate: (rating) async {
-                                // Этот код вызывается когда рейтинг был успешно обновлен через RatingTimeLock
-                                double currentRating =
-                                    double.parse(product['ratings'].toString());
-                                double updatedRating;
+                                DateTime currentTime = DateTime.now();
+                                if (currentTime.difference(lastRatingTimes[productId]!).inSeconds >= 10) {
+                                  double currentRating = double.parse(product['ratings'].toString());
+                                  double updatedRating;
 
-                                if (rating < 3) {
-                                  updatedRating =
-                                      (currentRating - 0.1).toDouble();
+                                  if (rating < 4) {
+                                    updatedRating = currentRating - 0.1;
+                                  } else {
+                                    updatedRating = currentRating + 0.1;
+                                  }
+                                  try {
+                                    double newRating = await submitRating(productId, updatedRating);
+                                    setState(() {
+                                      product['ratings'] = newRating;
+                                      lastRatingTimes[productId] = currentTime;
+                                    });
+                                  } catch (error) {
+                                    setState(() {}); // вызов setState для обновления виджета RatingBar
+                                    print("Error updating rating: $error");
+                                  }
                                 } else {
-                                  updatedRating =
-                                      (currentRating + 0.1).toDouble();
-                                }
-                                updatedRating = double.parse(
-                                    updatedRating.toStringAsFixed(1));
-                                try {
-                                  double newRating = await submitRating(
-                                      productId, updatedRating);
-                                  setState(() {
-                                    product['ratings'] = newRating;
-                                  });
-                                } catch (error) {
-                                  setState(() {});
-                                  print("Error updating rating: $error");
+                                  setState(() {}); // вызов setState для обновления виджета RatingBar
+                                  int remainingSeconds = 10 - currentTime.difference(lastRatingTimes[productId]!).inSeconds;
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                    content: Text('Вы можете изменить рейтинг через $remainingSeconds секунд.'),
+                                    duration: Duration(seconds: 2),
+                                  ));
                                 }
                               },
+                              unratedColor: Colors.grey,
+                              itemSize: 20,
                             ),
+
+
+
                             SizedBox(
                               width: 8,
                             ),
                             Text(
-                              double.parse(product['ratings'].toString())
-                                  .toStringAsFixed(1),
+                              double.parse(product['ratings'].toString()).toStringAsFixed(1),
                               style: TextStyle(color: Colors.white),
                             ),
                           ],
@@ -241,9 +215,6 @@ class _HomeFragmentScreenState extends State<HomeFragmentScreen> {
   Future<List<dynamic>> fetchProducts() async {
     final response = await http.get(Uri.parse(
         'http://host1373377.hostland.pro/api_clothes_store/items/loaded.php'));
-
-    // Выводим тело ответа в консоль
-    print('Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
