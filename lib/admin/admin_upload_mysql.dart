@@ -257,7 +257,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ),
                       isLoading
                           ? CircularProgressIndicator()
-                          : Row(children: [Text('$ratingTime'), Text(" min")],),
+                          : Row(children: [Text('$ratingTime'), Text(" часы")],),
                       GestureDetector(
                         onTap: () => _increase(),
                         child: Padding(

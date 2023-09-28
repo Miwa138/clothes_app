@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RatingTimeLock extends StatefulWidget {
   final double currentRating;
@@ -27,6 +28,7 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
   void initState() {
     super.initState();
     fetchOptionsData();
+    getLastRatingTimeFromStorage();
   }
   fetchOptionsData() async {
     setState(() {
@@ -60,7 +62,24 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
       lastRatingTimes[widget.productId] = DateTime.now().subtract(Duration(hours: ratingTime));
     }
   }
+  void getLastRatingTimeFromStorage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String lastRatingTimeKey = 'lastRatingTime:${widget.productId}';
+    String? storedTimeString = prefs.getString(lastRatingTimeKey);
 
+    if (storedTimeString != null) {
+      setState(() {
+        lastRatingTimes[widget.productId] = DateTime.parse(storedTimeString);
+      });
+    }
+  }
+
+  // Добавьте этот метод для сохранения времени блокировки рейтинга в SharedPreferences
+  void setLastRatingTimeToStorage(DateTime lastRatingTime) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String lastRatingTimeKey = 'lastRatingTime:${widget.productId}';
+    await prefs.setString(lastRatingTimeKey, lastRatingTime.toString());
+  }
   @override
   Widget build(BuildContext context) {
     return RatingBar.builder(
@@ -75,22 +94,37 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
       ),
       onRatingUpdate: (rating) {
         DateTime currentTime = DateTime.now();
-        if (currentTime.difference(lastRatingTimes[widget.productId]!).inHours >= ratingTime) {
+        Duration timeDifference = currentTime.difference(lastRatingTimes[widget.productId]!);
+        if (timeDifference.inHours >= ratingTime) {
           widget.onRatingUpdate(rating);
           setState(() {
             lastRatingTimes[widget.productId] = currentTime;
           });
+          setLastRatingTimeToStorage(currentTime); // Добавьте эту строку для сохранения времени в SharedPreferences
         } else {
-          setState(() {});
-          int remainingHours =
-              ratingTime - currentTime.difference(lastRatingTimes[widget.productId]!).inHours;
+          int remainingHours = ratingTime - timeDifference.inHours;
+          int remainingMinutes = ratingTime * 60 - timeDifference.inMinutes;
+          int remainingSeconds = ratingTime * 3600 - timeDifference.inSeconds;
+          String timeUnit;
+          int timeValue;
+
+          if (remainingHours > 0) {
+            timeUnit = "час";
+            timeValue = remainingHours;
+          } else if (remainingMinutes > 0) {
+            timeUnit = "минут";
+            timeValue = remainingMinutes;
+          } else {
+            timeUnit = "секунд";
+            timeValue = remainingSeconds;
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Вы можете изменить рейтинг через $remainingHours час.'),
+            content: Text('Вы можете изменить рейтинг через $timeValue $timeUnit.'),
             duration: Duration(seconds: 2),
           ));
         }
       },
-
       unratedColor: Colors.grey,
       itemSize: 20,
     );
