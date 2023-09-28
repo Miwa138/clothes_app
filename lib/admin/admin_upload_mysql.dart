@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api_connection/api_connection.dart';
 
@@ -57,6 +58,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Future<void> _changeRatingTime(String action) async {
+    // Очистка данных SharedPreferences перед изменением значения rating_time
+   clearAllDataFromStorage();
+
     var response = await http.post(
       Uri.parse(API.updateOptions),
       body: {'action': action},
@@ -69,6 +73,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       });
     }
   }
+
 
   @override
   void initState() {
@@ -119,6 +124,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _changeRatingTime('decrease');
   }
 
+  void clearAllDataFromStorage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(

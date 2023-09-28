@@ -24,26 +24,30 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
   bool isLoading = false;
   int ratingTime = 0;
   List options = [];
+
   @override
   void initState() {
     super.initState();
     fetchOptionsData();
     getLastRatingTimeFromStorage();
   }
+  void clearAllDataFromStorage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
   fetchOptionsData() async {
     setState(() {
       isLoading = true;
     });
-    var url =
-        'http://host1373377.hostland.pro/api_clothes_store/options/get_rating_time.php';
+    var url = 'http://host1373377.hostland.pro/api_clothes_store/options/get_rating_time.php';
     var response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       var items = json.decode(response.body);
       setState(() {
         options = items;
         isLoading = false;
-        print("::::::::::::::::::::::");
-        print(options);
+        // print("::::::::::::::::::::::");
+        // print(options);
         if (items.isNotEmpty && items[0]['rating_time'] != null) {
           ratingTime = items[0]['rating_time'] is int
               ? items[0]['rating_time']
@@ -58,10 +62,13 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
     }
 
     // Задать время последней оценки для продуктов после того, как данные установлены
-    if (lastRatingTimes.isEmpty || !lastRatingTimes.containsKey(widget.productId)) {
-      lastRatingTimes[widget.productId] = DateTime.now().subtract(Duration(hours: ratingTime));
+    if (lastRatingTimes.isEmpty ||
+        !lastRatingTimes.containsKey(widget.productId)) {
+      lastRatingTimes[widget.productId] =
+          DateTime.now().subtract(Duration(hours: ratingTime));
     }
   }
+
   void getLastRatingTimeFromStorage() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String lastRatingTimeKey = 'lastRatingTime:${widget.productId}';
@@ -69,17 +76,20 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
 
     if (storedTimeString != null) {
       setState(() {
-        lastRatingTimes[widget.productId] = DateTime.parse(storedTimeString);
+        lastRatingTimes[widget.productId] = DateTime.parse(storedTimeString).toLocal();
       });
     }
   }
 
-  // Добавьте этот метод для сохранения времени блокировки рейтинга в SharedPreferences
+
+
   void setLastRatingTimeToStorage(DateTime lastRatingTime) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String lastRatingTimeKey = 'lastRatingTime:${widget.productId}';
-    await prefs.setString(lastRatingTimeKey, lastRatingTime.toString());
+    await prefs.setString(lastRatingTimeKey, lastRatingTime.toUtc().toString());
   }
+
+
   @override
   Widget build(BuildContext context) {
     return RatingBar.builder(
@@ -94,33 +104,34 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
       ),
       onRatingUpdate: (rating) {
         DateTime currentTime = DateTime.now();
-        Duration timeDifference = currentTime.difference(lastRatingTimes[widget.productId]!);
-        if (timeDifference.inHours >= ratingTime) {
+        Duration timeDifference =
+        currentTime.difference(lastRatingTimes[widget.productId]!);
+
+        // Изменили условие на проверку, что прошло более 3 часов
+        if (timeDifference.inHours >= 3) {
           widget.onRatingUpdate(rating);
           setState(() {
             lastRatingTimes[widget.productId] = currentTime;
           });
-          setLastRatingTimeToStorage(currentTime); // Добавьте эту строку для сохранения времени в SharedPreferences
+
+          setLastRatingTimeToStorage(
+              currentTime);
         } else {
           int remainingHours = ratingTime - timeDifference.inHours;
           int remainingMinutes = ratingTime * 60 - timeDifference.inMinutes;
           int remainingSeconds = ratingTime * 3600 - timeDifference.inSeconds;
-          String timeUnit;
-          int timeValue;
+          String timeText;
 
           if (remainingHours > 0) {
-            timeUnit = "час";
-            timeValue = remainingHours;
+            timeText = '${remainingHours} ч. ${remainingMinutes % 60} мин.';
           } else if (remainingMinutes > 0) {
-            timeUnit = "минут";
-            timeValue = remainingMinutes;
+            timeText = '$remainingMinutes мин. ${remainingSeconds % 60} сек.';
           } else {
-            timeUnit = "секунд";
-            timeValue = remainingSeconds;
+            timeText = '$remainingSeconds сек.';
           }
 
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Вы можете изменить рейтинг через $timeValue $timeUnit.'),
+            content: Text('Вы можете изменить рейтинг через $timeText.'),
             duration: Duration(seconds: 2),
           ));
         }
