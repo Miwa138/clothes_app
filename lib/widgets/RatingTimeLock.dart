@@ -19,17 +19,14 @@ class RatingTimeLock extends StatefulWidget {
 }
 
 class _RatingTimeLockState extends State<RatingTimeLock> {
-  static Map<int, DateTime> lastRatingTimes = {};
+  static Map<int, DateTime> lastRatingTimes = Map<int, DateTime>();
   bool isLoading = false;
-  int ratingTime = 0; // начальное значение
+  int ratingTime = 0;
   List options = [];
   @override
   void initState() {
     super.initState();
     fetchOptionsData();
-    if (lastRatingTimes.isEmpty || !lastRatingTimes.containsKey(widget.productId)) {
-      lastRatingTimes[widget.productId] = DateTime.now().subtract(const Duration(minutes: 2));
-    }
   }
   fetchOptionsData() async {
     setState(() {
@@ -37,7 +34,7 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
     });
     var url =
         'http://host1373377.hostland.pro/api_clothes_store/options/get_rating_time.php';
-    var response = await http.get(Uri.parse(url)); // исправлено здесь
+    var response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       var items = json.decode(response.body);
       setState(() {
@@ -45,7 +42,6 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
         isLoading = false;
         print("::::::::::::::::::::::");
         print(options);
-        // Проверяем, что массив не пустой и содержит рейтинг_время, затем устанавливаем его
         if (items.isNotEmpty && items[0]['rating_time'] != null) {
           ratingTime = items[0]['rating_time'] is int
               ? items[0]['rating_time']
@@ -58,7 +54,13 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
       });
       print('Failed to load data');
     }
+
+    // Задать время последней оценки для продуктов после того, как данные установлены
+    if (lastRatingTimes.isEmpty || !lastRatingTimes.containsKey(widget.productId)) {
+      lastRatingTimes[widget.productId] = DateTime.now().subtract(Duration(hours: ratingTime));
+    }
   }
+
   @override
   Widget build(BuildContext context) {
     return RatingBar.builder(
@@ -73,21 +75,22 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
       ),
       onRatingUpdate: (rating) {
         DateTime currentTime = DateTime.now();
-        if (currentTime.difference(lastRatingTimes[widget.productId]!).inSeconds >= ratingTime) {
+        if (currentTime.difference(lastRatingTimes[widget.productId]!).inHours >= ratingTime) {
           widget.onRatingUpdate(rating);
           setState(() {
             lastRatingTimes[widget.productId] = currentTime;
           });
         } else {
           setState(() {});
-          int remainingSeconds =
-              ratingTime - currentTime.difference(lastRatingTimes[widget.productId]!).inSeconds;
+          int remainingHours =
+              ratingTime - currentTime.difference(lastRatingTimes[widget.productId]!).inHours;
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Вы можете изменить рейтинг через $remainingSeconds секунд.'),
+            content: Text('Вы можете изменить рейтинг через $remainingHours час.'),
             duration: Duration(seconds: 2),
           ));
         }
       },
+
       unratedColor: Colors.grey,
       itemSize: 20,
     );
