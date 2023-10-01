@@ -1,167 +1,98 @@
-import 'dart:typed_data';
-import 'package:clothes_app/api_connection/api_connection.dart';
-import 'package:dio/dio.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:http_parser/http_parser.dart';
-import 'package:multiple_images_picker/multiple_images_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
+class RatingTimeLock extends StatefulWidget {
+  final double currentRating;
+  final int productId;
+  final Function(double) onRatingUpdate;
 
-class AdminUploadItemsScreen extends StatefulWidget {
-  const AdminUploadItemsScreen({super.key});
+  RatingTimeLock({
+    required this.currentRating,
+    required this.productId,
+    required this.onRatingUpdate,
+  });
 
   @override
-  State<AdminUploadItemsScreen> createState() => _AdminUploadItemsScreenState();
+  _RatingTimeLockState createState() => _RatingTimeLockState();
 }
 
-class _AdminUploadItemsScreenState extends State<AdminUploadItemsScreen> {
-  ValueNotifier<double> uploadProgressNotifier = ValueNotifier(0.0);
-  List<Asset> images = [];
-  Dio dio = Dio();
-  Widget buildGridView() {
-    return GridView.count(
-      crossAxisCount: 3,
-      children: List.generate(images.length, (index) {
-        Asset asset = images[index];
-        return AssetThumb(asset: asset, width: 300, height: 300);
-      }),
-    );
-  }
-
-  Future<void> requestPermissions() async {
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.camera,
-      Permission.photos,
-    ].request();
-
-    if (statuses[Permission.camera]!.isDenied || statuses[Permission.photos]!.isDenied) {
-      showDialog(
-          context: context,
-          builder: (BuildContext context) => AlertDialog(
-            title: const Text("Ошибка разрешения"),
-            content: const Text(
-                "Пожалуйста, предоставьте разрешения на доступ к камере и галерее"),
-            actions: <Widget>[
-              TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("ОК"))
-            ],
-          ));
-    }
-  }
-
-  Future<void> loadAssets() async {
-    await requestPermissions();
-
-    List<Asset> resultList = <Asset>[];
-
-    try {
-      resultList = await MultipleImagesPicker.pickImages(
-        maxImages: 300,
-        enableCamera: true,
-        selectedAssets: images,
-        cupertinoOptions: const CupertinoOptions(takePhotoIcon: "chat"),
-        materialOptions: const MaterialOptions(
-          actionBarColor: "#abcdef",
-          actionBarTitle: "Example App",
-          allViewTitle: "All Photos",
-          useDetailsView: false,
-          selectCircleStrokeColor: "#000000",
-        ),
-      );
-    } on Exception catch (e) {
-      print(e.toString());
-    }
-    if (!mounted) return;
-
-    setState(() {
-      images = resultList;
-    });
-  }
-  _saveImage()async{
-    if(images != null){
-      for(var i = 0; i < images.length; i++){
-        ByteData byteData = await images[i].getByteData();
-        List<int> imageData = byteData.buffer.asUint8List();
-
-        MultipartFile multipartFile = MultipartFile.fromBytes(
-          imageData,
-          filename: images[i].name,
-          contentType: MediaType('image', 'jpg'),
-        );
-        FormData formData = FormData.fromMap({
-          "image": multipartFile
-        });
-        var response = await dio.post(API.uploadNewItem, data: formData);
-        if(response.statusCode == 200){
-          print(response.data);
-        }
-      }
-    }
-  }
-
+class _RatingTimeLockState extends State<RatingTimeLock> {
+  static Map<int, DateTime> lastRatingTimes = Map<int, DateTime>();
+  bool isLoading = false;
+  int ratingTime = 0;
+  List options = [];
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+    fetchOptionsData();
   }
+  fetchOptionsData() async {
+    setState(() {
+      isLoading = true;
+    });
+    var url =
+        'http://host1373377.hostland.pro/api_clothes_store/options/get_rating_time.php';
+    var response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      var items = json.decode(response.body);
+      setState(() {
+        options = items;
+        isLoading = false;
+        print("::::::::::::::::::::::");
+        print(options);
+        if (items.isNotEmpty && items[0]['rating_time'] != null) {
+          ratingTime = items[0]['rating_time'] is int
+              ? items[0]['rating_time']
+              : int.parse(items[0]['rating_time']);
+        }
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      print('Failed to load data');
+    }
 
-  Future<void> _showProgressDialog(BuildContext context) {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false,
-          child: Center(
-            child: ValueListenableBuilder<double>(
-              valueListenable: uploadProgressNotifier,
-              builder: (context, value, child) {
-                return AlertDialog(
-                  content: Row(
-                    children: [
-                      CircularProgressIndicator(value: value),
-                      const SizedBox(width: 20),
-                      Text('${(value * 100).toStringAsFixed(0)}%'),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
+    // Задать время последней оценки для продуктов после того, как данные установлены
+    if (lastRatingTimes.isEmpty || !lastRatingTimes.containsKey(widget.productId)) {
+      lastRatingTimes[widget.productId] = DateTime.now().subtract(Duration(hours: ratingTime));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text('Upload Images')),
-      body: ListView(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 60),
-            child: ElevatedButton(
-              onPressed: loadAssets,
-              child: const Text('Pick Images from Gallery'),
-            ),
-          ),
-          Container(
-            height: MediaQuery.of(context).size.height *
-                0.6, // Adjust the height value according to your preference
-            child: buildGridView(),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 60),
-            child: ElevatedButton(
-              onPressed: _saveImage,
-              child: const Text('Отправить'),
-            ),
-          ),
-        ],
+    return RatingBar.builder(
+      initialRating: widget.currentRating,
+      minRating: 1,
+      direction: Axis.horizontal,
+      allowHalfRating: true,
+      itemCount: 5,
+      itemBuilder: (context, c) => Icon(
+        Icons.star,
+        color: Colors.amber,
       ),
+      onRatingUpdate: (rating) {
+        DateTime currentTime = DateTime.now();
+        if (currentTime.difference(lastRatingTimes[widget.productId]!).inHours >= ratingTime) {
+          widget.onRatingUpdate(rating);
+          setState(() {
+            lastRatingTimes[widget.productId] = currentTime;
+          });
+        } else {
+          setState(() {});
+          int remainingHours =
+              ratingTime - currentTime.difference(lastRatingTimes[widget.productId]!).inHours;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Вы можете изменить рейтинг через $remainingHours час.'),
+            duration: Duration(seconds: 2),
+          ));
+        }
+      },
+
+      unratedColor: Colors.grey,
+      itemSize: 20,
     );
   }
 }

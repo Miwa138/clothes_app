@@ -1,29 +1,37 @@
+import 'package:clothes_app/users/authentication/login_screen.dart';
 import 'package:clothes_app/users/fragments/dashboard_of_fragments.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_navigation/get_navigation.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:get/get_navigation/get_navigation.dart';
+import 'camera.dart';
 import 'generated/codegen_loader.g.dart';
-import 'users/authentication/login_screen.dart';
-import 'users/user_preferences/user_preferences.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await EasyLocalization.ensureInitialized();
 
-  runApp(
-      EasyLocalization(
-    assetLoader: CodegenLoader(),
-    supportedLocales: [
-      Locale('en'),
-      Locale('ru')
-    ],
-    path: 'assets/lang',
-    fallbackLocale: Locale('en'),
-    child: MyApp(),
-  ));
+  WidgetsBinding.instance!.addPostFrameCallback((_) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }); {
+    runApp(
+        EasyLocalization(
+          assetLoader: CodegenLoader(),
+          supportedLocales: [
+            Locale('en'),
+            Locale('ru'),
+          ],
+          path: 'assets/lang',
+          fallbackLocale: Locale('en'),
+          child: MyApp(),
+        ));
+  }
 }
-
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -33,24 +41,22 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // This widget is the root of your application.
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    get();
+    handlerPermissions();
   }
 
-  get()async{
-    var permissionStatus = await Permission.storage.status;
+  void handlerPermissions() async {
+    var status = await Permission.camera.status;
+    if (!status.isGranted) {
+      await Permission.camera.request();
+    }
 
-    switch (permissionStatus) {
-      case PermissionStatus.denied:
-      case PermissionStatus.permanentlyDenied:
-        await Permission.storage.request();
-        break;
-      default:
+    status = await Permission.storage.status;
+    if (!status.isGranted) {
+      await Permission.storage.request();
     }
   }
 
@@ -65,23 +71,7 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-       home:
-
-      FutureBuilder(
-        future: RememberUserPrefs.readUserUser(),
-        builder: (context, dataSnapShot)
-        {
-          if(dataSnapShot.data == null)
-          {
-            return LoginScreen();
-          }
-          else
-          {
-            return DashboardOfFragments();
-          }
-        },
-      ),
+      home: DashboardOfFragments(),
     );
   }
 }
-

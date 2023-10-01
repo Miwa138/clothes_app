@@ -7,10 +7,14 @@ class CurrentUser extends GetxController
   Rx<User> _currentUser = User(user_id: 0, user_name: '', user_email: '', user_password: '').obs;
   User get user => _currentUser.value;
 
-  getUserInfo()async
-  {
+  getUserInfo() async {
     User? getUserInfoFromLocalStorage = await RememberUserPrefs.readUserUser();
-    _currentUser.value = getUserInfoFromLocalStorage!;
+
+    if (getUserInfoFromLocalStorage != null) {
+      _currentUser.value = getUserInfoFromLocalStorage;
+    } else {
+      print("RememberUserPrefs.readUserUser() возвращает null");
+    }
   }
 
 }

@@ -104,38 +104,24 @@ class _RatingTimeLockState extends State<RatingTimeLock> {
       ),
       onRatingUpdate: (rating) {
         DateTime currentTime = DateTime.now();
-        Duration timeDifference =
-        currentTime.difference(lastRatingTimes[widget.productId]!);
-
-        // Изменили условие на проверку, что прошло более 3 часов
-        if (timeDifference.inHours >= 3) {
+        if (currentTime.difference(lastRatingTimes[widget.productId]!).inHours >= ratingTime) {
           widget.onRatingUpdate(rating);
           setState(() {
             lastRatingTimes[widget.productId] = currentTime;
           });
-
           setLastRatingTimeToStorage(
               currentTime);
         } else {
-          int remainingHours = ratingTime - timeDifference.inHours;
-          int remainingMinutes = ratingTime * 60 - timeDifference.inMinutes;
-          int remainingSeconds = ratingTime * 3600 - timeDifference.inSeconds;
-          String timeText;
-
-          if (remainingHours > 0) {
-            timeText = '${remainingHours} ч. ${remainingMinutes % 60} мин.';
-          } else if (remainingMinutes > 0) {
-            timeText = '$remainingMinutes мин. ${remainingSeconds % 60} сек.';
-          } else {
-            timeText = '$remainingSeconds сек.';
-          }
-
+          setState(() {});
+          int remainingHours =
+              ratingTime - currentTime.difference(lastRatingTimes[widget.productId]!).inHours;
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Вы можете изменить рейтинг через $timeText.'),
+            content: Text('Вы можете изменить рейтинг через $remainingHours час.'),
             duration: Duration(seconds: 2),
           ));
         }
       },
+
       unratedColor: Colors.grey,
       itemSize: 20,
     );
